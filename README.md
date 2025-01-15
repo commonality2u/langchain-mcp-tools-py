@@ -1,15 +1,14 @@
-# MCP To LangChain Tools Conversion Utility / Python [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/hideya/mcp-langchain-client-ts/blob/main/LICENSE) [![pypi version](https://img.shields.io/pypi/v/langchain-mcp-tools.svg)](https://pypi.org/project/langchain-mcp-tools/)
+# MCP To LangChain Tools Conversion Utility [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/hideya/langchain-mcp-tools-py/blob/main/LICENSE) [![pypi version](https://img.shields.io/pypi/v/langchain-mcp-tools.svg)](https://pypi.org/project/langchain-mcp-tools/)
 
 This package is intended to simplify the use of
 [Model Context Protocol (MCP)](https://modelcontextprotocol.io/)
 server tools with LangChain / Python.
 
-It contains a utility function `convertMcpToLangchainTools()`.  
+It contains a utility function `convert_mcp_to_langchain_tools()`.  
 This function handles parallel initialization of specified multiple MCP servers
-and converts their available tools into an array of
-[LangChain-compatible tools](https://js.langchain.com/docs/how_to/tool_calling/).
+and converts their available tools into a list of LangChain-compatible tools.
 
-A typescript version of this utility library is available
+A typescript equivalent of this utility library is available
 [here](https://www.npmjs.com/package/@h1deya/langchain-mcp-tools)
 
 ## Requirements
@@ -47,11 +46,12 @@ and is expressed as a `dict`, e.g.:
     )
 ```
 
-The utility function initializes all specified MCP servers in parallel,
-and returns LangChain Tools (`List[BaseTool]`)
-by gathering all available MCP server tools,
-and by wrapping them into [LangChain Tools](https://js.langchain.com/docs/how_to/tool_calling/).
-It also returns a cleanup callback function (`McpServerCleanupFn`)
+This utility function initializes all specified MCP servers in parallel,
+and returns [LangChain Tools](https://python.langchain.com/api_reference/core/tools.html)
+(`tools: List[BaseTool]`)
+by gathering available MCP tools from the servers,
+and by wrapping them into LangChain tools.
+It also returns an async callback function (`cleanup: McpServerCleanupFn`)
 to be invoked to close all MCP server sessions when finished.
 
 The returned tools can be used with LangChain, e.g.:
@@ -69,14 +69,12 @@ The returned tools can be used with LangChain, e.g.:
         tools
     )
 ```
-<!-- A simple and experimentable usage example can be found
-[here](https://github.com/hideya/langchain-mcp-tools-ts-usage/blob/main/src/index.ts) -->
+A simple and experimentable usage example can be found
+[here](https://github.com/hideya/langchain-mcp-tools-py-usage/blob/main/src/example.py)
 
-<!-- A more realistic usage example can be found
-[here](https://github.com/hideya/langchain-mcp-client-ts) -->
-
-An usage example can be found
+A more realistic usage example can be found
 [here](https://github.com/hideya/mcp-client-langchain-py)
+
 
 ## Limitations
 
@@ -85,28 +83,34 @@ Currently, only text results of tool calls are supported.
 ## Technical Details
 
 It was very tricky (for me) to get the parallel MCP server initialization
-to work successfully...
+to work, including successful final resource cleanup...
 
 I'm new to Python, so it is very possible that my ignorance is playing
 a big role here...  
-I'm summarizing why it was difficult for me below.  
+I'll summarize the difficulties I faced below.
+The source code is available
+[here](https://github.com/hideya/langchain-mcp-tools-py/blob/main/langchain_mcp_tools/langchain_mcp_tools.py).  
 Any comments pointing out something I am missing would be greatly appreciated!
 [(comment here)](https://github.com/hideya/langchain-mcp-tools-ts/issues)
 
 1. Core Challenge:
-   - Async resources management for `stdio_client` and `ClientSession` seems
-     to rely exclusively on `asynccontextmanager` for cleanup with no manual
-     cleanup options (based on the mcp python-sdk impl as of Jan 14, 2025)
+
+   A key requirement for parallel initialization is that each server must be
+   initialized in its own dedicated task - there's no way around this as far as
+   I know. However, this poses a challenge when combined with
+   `asynccontextmanager`.
+
+   - Resources management for `stdio_client` and `ClientSession` seems
+     to require relying exclusively on `asynccontextmanager` for cleanup,
+     with no manual cleanup options
+     (based on [the mcp python-sdk impl as of Jan 14, 2025](https://github.com/modelcontextprotocol/python-sdk/tree/99727a9/src/mcp/client))
    - Initializing multiple MCP servers in parallel requires a dedicated
      `asyncio.Task` per server
-   - Necessity of keeping sessions alive for later use after initialization
-   - Ensuring proper cleanup later in the same task that created them
+   - Need to keep sessions alive for later use by different tasks
+     after initialization
+   - Need to ensure proper cleanup later in the same task that created them
 
 2. Solution Strategy:
-   A key requirement for parallel initialization is that each server must be
-   initialized in its own dedicated task - there's no way around this if we
-   want true parallel initialization. However, this creates a challenge since
-   we also need to maintain long-lived sessions and handle cleanup properly.
 
    The key insight is to keep the initialization tasks alive throughout the
    session lifetime, rather than letting them complete after initialization.
@@ -127,7 +131,9 @@ Any comments pointing out something I am missing would be greatly appreciated!
      called from the same task that created the context
 
 3. Task Lifecycle:
-   To allow the initialization task to stay alive waiting for cleanup:
+
+   The following task lifecyle diagram illustrates how the above strategy
+   was impelemented:
    ```
    [Task starts]
      ↓
@@ -148,4 +154,5 @@ It usually means I'm doing something very worng...
 I think it is a natural assumption that MCP SDK is designed with consideration
 for parallel server initialization.
 I'm not sure what I'm missing...
-(FYI, with the TypeScript SDK, parallel server initialization was pretty straightforward)
+(FYI, with the TypeScript MCP SDK, parallel initialization was 
+[pretty straightforward](https://github.com/hideya/langchain-mcp-tools-ts/blob/main/src/langchain-mcp-tools.ts))
