@@ -1,7 +1,7 @@
 # NOTES: 
 # - The command lines (recipe lines) must start with a TAB character.
 # - Each command line runs in a separate shell without .ONESHELL:
-.PHONY: clean install build pkg-check publish run-example
+.PHONY: clean install build pkg-check publish test run-example
 .ONESHELL:
 
 .venv:
@@ -32,8 +32,21 @@ publish: build
 		--repository-url https://upload.pypi.org/legacy/ dist/* \
 		--password ${PYPI_API_KEY}
 
+test:
+	python -m pytest tests/ -v
+
 run-example: install
 	uv run examples/example.py
 
 clean:
-	git clean -fdx -e .env
+	@echo "The following files will be removed:"
+	@git clean -fdxn -e .env
+	@echo "\nAre you sure you want to proceed? [Y/n] "
+	@read ans; \
+	if [ "$${ans:-Y}" = "Y" ]; then \
+		echo "Proceeding with clean..."; \
+		git clean -fdx -e .env; \
+	else \
+		echo "Clean cancelled."; \
+		exit 1; \
+	fi
