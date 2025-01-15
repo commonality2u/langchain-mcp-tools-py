@@ -30,20 +30,20 @@ but only the contents of the `mcpServers` property,
 and is expressed as a `dict`, e.g.:
 
 ```python
-    mcp_configs = {
-        'filesystem': {
-            'command': 'npx',
-            'args': ['-y', '@modelcontextprotocol/server-filesystem', '.']
-        },
-        'fetch': {
-            'command': 'uvx',
-            'args': ['mcp-server-fetch']
-        }
+mcp_configs = {
+    'filesystem': {
+        'command': 'npx',
+        'args': ['-y', '@modelcontextprotocol/server-filesystem', '.']
+    },
+    'fetch': {
+        'command': 'uvx',
+        'args': ['mcp-server-fetch']
     }
+}
 
-    tools, cleanup = await convert_mcp_to_langchain_tools(
-        mcp_configs
-    )
+tools, cleanup = await convert_mcp_to_langchain_tools(
+    mcp_configs
+)
 ```
 
 This utility function initializes all specified MCP servers in parallel,
@@ -57,17 +57,17 @@ to be invoked to close all MCP server sessions when finished.
 The returned tools can be used with LangChain, e.g.:
 
 ```python
-    # from langchain.chat_models import init_chat_model
-    llm = init_chat_model(
-        model='claude-3-5-haiku-latest',
-        model_provider='anthropic'
-    )
+# from langchain.chat_models import init_chat_model
+llm = init_chat_model(
+    model='claude-3-5-haiku-latest',
+    model_provider='anthropic'
+)
 
-    # from langgraph.prebuilt import create_react_agent
-    agent = create_react_agent(
-        llm,
-        tools
-    )
+# from langgraph.prebuilt import create_react_agent
+agent = create_react_agent(
+    llm,
+    tools
+)
 ```
 A simple and experimentable usage example can be found
 [here](https://github.com/hideya/langchain-mcp-tools-py-usage/blob/main/src/example.py)
@@ -93,7 +93,7 @@ The source code is available
 Any comments pointing out something I am missing would be greatly appreciated!
 [(comment here)](https://github.com/hideya/langchain-mcp-tools-ts/issues)
 
-1. Core Challenge:
+1. Challenge:
 
    A key requirement for parallel initialization is that each server must be
    initialized in its own dedicated task - there's no way around this as far as
@@ -110,7 +110,7 @@ Any comments pointing out something I am missing would be greatly appreciated!
      after initialization
    - Need to ensure proper cleanup later in the same task that created them
 
-2. Solution Strategy:
+2. Solution:
 
    The key insight is to keep the initialization tasks alive throughout the
    session lifetime, rather than letting them complete after initialization.
@@ -154,5 +154,5 @@ It usually means I'm doing something very worng...
 I think it is a natural assumption that MCP SDK is designed with consideration
 for parallel server initialization.
 I'm not sure what I'm missing...
-(FYI, with the TypeScript MCP SDK, parallel initialization was 
+(FYI, with the TypeScript MCP SDK, parallel initialization was
 [pretty straightforward](https://github.com/hideya/langchain-mcp-tools-ts/blob/main/src/langchain-mcp-tools.ts))

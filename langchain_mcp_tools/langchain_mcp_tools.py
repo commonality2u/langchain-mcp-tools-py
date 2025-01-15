@@ -36,7 +36,7 @@ This code implements a specific pattern for managing async resources that
 require context managers while enabling parallel initialization.
 The key aspects are:
 
-1. Core Challenge:
+1. Challenge:
 
    A key requirement for parallel initialization is that each server must be
    initialized in its own dedicated task - there's no way around this as far as
@@ -53,7 +53,7 @@ The key aspects are:
      after initialization
    - Need to ensure proper cleanup later in the same task that created them
 
-2. Solution Strategy:
+2. Solution:
 
    The key insight is to keep the initialization tasks alive throughout the
    session lifetime, rather than letting them complete after initialization.
