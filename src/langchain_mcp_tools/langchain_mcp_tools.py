@@ -95,7 +95,10 @@ async def spawn_mcp_server_and_get_transport(
 
         # Initialize stdio client and register it with exit stack for cleanup
         stdio_transport = await exit_stack.enter_async_context(
-            stdio_client(server_params)
+            stdio_client(
+                server=server_params,
+                # errlog=server_config.get('errlog', None)
+            )
         )
     except Exception as e:
         logger.error(f'Error spawning MCP server: {str(e)}')

@@ -3,6 +3,7 @@ import asyncio
 import logging
 import os
 import sys
+from typing import Dict, Any
 
 # Third-party imports
 try:
@@ -37,7 +38,7 @@ async def run() -> None:
     #     raise Exception('OPENAI_API_KEY env var needs to be set')
 
     try:
-        mcp_configs = {
+        mcp_servers = {
             'filesystem': {
                 'command': 'npx',
                 'args': [
@@ -61,8 +62,17 @@ async def run() -> None:
             },
         }
 
+        # Set file descriptor to which MCP server's stderr is redirected
+        for server_name in mcp_servers:
+            log_path = f'mcp-server-{server_name}.log'
+            # Open the file in write mode
+            log_fd = open(log_path, 'w')
+            # Store the file descriptor in the dictionary
+            print('***', log_fd.fileno())
+            mcp_servers[server_name]['errlog'] = int(log_fd.fileno())
+
         tools, cleanup = await convert_mcp_to_langchain_tools(
-            mcp_configs,
+            mcp_servers,
             # init_logger()
         )
 
